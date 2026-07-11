@@ -1,0 +1,79 @@
+"""
+全局配置文件 —— 所有模块从这里读取参数。
+修改此文件即可切换模型、路径、LoRA 等设置。
+
+敏感信息（API Key）从 .env 文件读取，不硬编码在代码中。
+"""
+
+import os
+from pathlib import Path
+
+# 尝试加载 .env 文件（如果 python-dotenv 可用）
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent / ".env")
+except ImportError:
+    pass  # python-dotenv 未安装时忽略，直接读系统环境变量
+
+# ==================== 项目根目录 ====================
+PROJECT_ROOT = Path(__file__).parent.resolve()
+
+# ==================== LLM 配置（Agent 大脑） ====================
+# 支持 OpenAI 兼容接口：DeepSeek、Qwen、本地 Ollama 等
+LLM_CONFIG = {
+    "api_base": os.getenv("LLM_API_BASE", "https://api.deepseek.com/v1"),
+    "api_key": os.getenv("LLM_API_KEY", ""),
+    "model": os.getenv("LLM_MODEL", "deepseek-chat"),
+    "temperature": 0.7,
+    "max_tokens": 2048,
+}
+
+# 如果使用本地 Ollama，取消下面注释并注释上面
+# LLM_CONFIG = {
+#     "api_base": "http://localhost:11434/v1",
+#     "api_key": "ollama",
+#     "model": "qwen2.5:7b",
+#     "temperature": 0.7,
+#     "max_tokens": 2048,
+# }
+
+# ==================== Embedding 配置（RAG 向量化） ====================
+EMBEDDING_CONFIG = {
+    "model_name": "BAAI/bge-small-zh-v1.5",  # 轻量中文嵌入，Mac/Windows 都能跑
+    "device": "cpu",                          # 有 GPU 改为 "cuda"
+}
+
+# ==================== ChromaDB 配置 ====================
+CHROMA_CONFIG = {
+    "persist_directory": str(PROJECT_ROOT / "module2_rag" / "chroma_db"),
+    "collection_name": "interior_design_knowledge",
+}
+
+# ==================== ComfyUI 配置 ====================
+COMFYUI_CONFIG = {
+    "api_base": "http://127.0.0.1:8188",  # ComfyUI 默认地址
+    "timeout": 120,                        # 图像生成超时（秒）
+    "output_dir": str(PROJECT_ROOT / "outputs"),
+}
+
+# ==================== LoRA 配置 ====================
+# 当前暂无风格 LoRA，设为 None 跳过 LoRA 注入
+LORA_CONFIG = {
+    "lora_name": None,
+    "lora_strength": 0.8,
+    "trigger_words": "",
+}
+
+# ==================== SD 生成默认参数 ====================
+SD_DEFAULTS = {
+    "checkpoint": "majicmixRealistic_v7.safetensors",  # SD 1.5 写实模型
+    "width": 512,
+    "height": 768,
+    "steps": 30,
+    "cfg_scale": 7.0,
+    "sampler": "euler_ancestral",
+    "negative_prompt": (
+        "ugly, blurry, low quality, distorted, bad anatomy, "
+        "watermark, text, signature, cropped, jpeg artifacts"
+    ),
+}

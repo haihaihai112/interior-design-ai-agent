@@ -1,0 +1,72 @@
+# ==================================================================
+# kohya_ss / sd-scripts LoRA 训练配置
+# 使用方法：
+#   kohya_ss 图形界面 → 加载此配置文件
+#   或命令行: accelerate launch sd-scripts/train_network.py --config_file train_config.toml
+# ==================================================================
+
+[general]
+# 预训练底模路径 —— 根据你用的底模修改
+pretrained_model_name_or_path = "/path/to/sd_xl_base_1.0.safetensors"
+
+# 训练数据目录 —— data_prep.py 的输出
+train_data_dir = "./training_data/image"
+
+# 输出目录 —— 训练好的 LoRA 保存位置
+output_dir = "./lora_output"
+output_name = "wabisabi_interior_v1"
+
+# 训练分辨率（必须与数据预处理一致）
+resolution = "1024,1024"
+
+# 基础设置
+seed = 42
+mixed_precision = "fp16"         # 4090 用 bf16 更佳
+save_precision = "fp16"
+max_train_steps = 1000           # 总训练步数
+save_every_n_steps = 200         # 每 N 步保存一次 checkpoint
+logging_dir = "./logs"
+sample_prompts = "./sample_prompts.txt"  # 可选，训练中采样查看效果
+
+[network]
+# LoRA 网络参数
+type = "lycoris"                 # LyCORIS 比标准 LoRA 效果更好
+# 如果用标准 LoRA，改为 type = "lora"
+rank = 32                        # 秩 —— 32 是风格 LoRA 的常用值
+alpha = 16                       # alpha = rank/2 是常见实践
+conv_rank = 0
+conv_alpha = 0
+
+[optimizer]
+# 优化器配置
+type = "AdamW8bit"               # 8bit 优化器省显存
+learning_rate = 1e-4             # 学习率 —— 1e-4 是风格 LoRA 的安全起点
+lr_scheduler = "cosine"          # 余弦退火
+lr_warmup_steps = 100            # 学习率预热
+optimizer_args = ["weight_decay=0.01"]
+
+[dataset]
+# 数据集配置
+batch_size = 2                   # 根据显存调整：4090 可用 3-4
+num_workers = 4
+max_token_length = 225
+cache_latents = true             # 缓存潜变量，省显存
+shuffle_caption = false          # 风格训练不要打乱 caption
+keep_tokens = 0
+flip_aug = true                  # 水平翻转数据增强
+color_aug = false                # 色彩增强（可能破坏风格一致性）
+caption_extension = ".txt"
+enable_bucket = true             # 自动按分辨率分桶
+min_bucket_reso = 256
+max_bucket_reso = 2048
+bucket_reso_steps = 64
+
+[sample]
+# 训练中采样（可选）
+sampler = "euler_ancestral"
+sample_every_n_steps = 200
+sample_steps = 30
+sample_cfg_scale = 7
+sample_width = 1024
+sample_height = 768
+sample_negative = "ugly, blurry, low quality, watermark, text"
