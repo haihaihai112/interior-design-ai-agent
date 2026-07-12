@@ -35,6 +35,10 @@ node_modules/
 
 # ==================== 运行时产物 ====================
 outputs/
+# 但保留 README 引用的作品集样张
+!outputs/interior_design_00004_.png
+!outputs/interior_design_00008_.png
+!outputs/interior_design_00010_.png
 chroma_db/
 *.sqlite3
 

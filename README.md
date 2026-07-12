@@ -4,13 +4,27 @@
 
 ---
 
+## ✨ 效果预览
+
+| 侘寂风书房 | 法式奶油风客厅 | 现代轻奢客厅 |
+|:---:|:---:|:---:|
+| 原木书架 + 纸灯 + 留白 | 拱形窗 + 石膏线 + 丝绒椅 | 落地窗 + 大理石 + 黄铜 |
+| ![侘寂风书房](outputs/interior_design_00004_.png) | ![法式奶油风](outputs/interior_design_00010_.png) | ![现代轻奢](outputs/interior_design_00008_.png) |
+
+> 更多作品集样张保存在 [`outputs/`](./outputs) 目录。
+
+---
+
 ## 📁 项目结构
 
 ```
 interior-design-ai-agent/
 ├── config.py                          # 全局配置（LLM、ComfyUI、LoRA、路径）
+├── .env                               # API Key 环境变量（不提交）
 ├── requirements.txt                   # Python 依赖
 ├── README.md                          # 本文件
+│
+├── outputs/                           # 生成效果图
 │
 ├── module1_lora/                      # 模块一：LoRA 微调
 │   ├── data_prep.py                   #   数据采集、清洗、打标脚本
@@ -31,7 +45,7 @@ interior-design-ai-agent/
 │   └── comfyui_client.py              #   ComfyUI API 客户端
 │
 └── module4_demo/                      # 模块四：Web 展示
-    └── app.py                         #   Gradio 网页界面
+    └── app.py                         #   Gradio 网页界面（UI 全面优化版）
 ```
 
 ---
@@ -47,24 +61,15 @@ pip install -r requirements.txt --break-system-packages
 
 ### 2. 配置 API Key
 
-编辑 `config.py`，填入你的 LLM API 信息：
+创建 `.env` 文件（参考 `.env.example`）：
 
-```python
-LLM_CONFIG = {
-    "api_base": "https://api.deepseek.com/v1",  # 或其他兼容接口
-    "api_key": "sk-xxxxxxxx",                    # 你的 API Key
-    "model": "deepseek-chat",
-}
+```env
+LLM_API_BASE=https://api.deepseek.com/v1
+LLM_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+LLM_MODEL=deepseek-chat
 ```
 
-如果用本地 Ollama：
-```python
-LLM_CONFIG = {
-    "api_base": "http://localhost:11434/v1",
-    "api_key": "ollama",
-    "model": "qwen2.5:7b",
-}
-```
+或用本地 Ollama 替代，编辑 `config.py` 取消对应注释。
 
 ### 3. 构建 RAG 知识库（只需运行一次）
 
@@ -89,6 +94,19 @@ python module4_demo/app.py
 ```
 
 浏览器打开 `http://127.0.0.1:7860`。
+
+---
+
+## 🌐 Web UI 界面说明
+
+UI 经过全新设计，采用温暖、安静、有呼吸感的视觉语言：
+
+- **深棕渐变顶部横幅** — 品牌标题 "Atelier · 室内设计智能体" + 风格标签
+- **左侧白色卡片式输入面板** — 5 行文本框 + 复选框 + 设计分析区
+- **右侧双标签页输出** — "Agent 推理过程" / "生成提示词" 切换
+- **图片输出** — 圆角阴影展示
+- **示例快捷入口** — 4 个预设设计需求一键填充
+- **状态栏** — 实时显示 ComfyUI 连接状态和系统信息
 
 ---
 
@@ -119,9 +137,30 @@ python module4_demo/app.py
 
 ### 模块四：Web Demo
 
-- Gradio 网页界面，两个框：输入需求 → 输出效果图
+**展示给面试官的点**：你有产品化的思维，不只是跑脚本。
+
+- Gradio 网页界面，左侧输入 → 右侧出图
 - 实时展示 Agent 推理过程和中间产物
 - 可切换查看：推理过程 / 生成提示词 / 设计分析
+- 响应式设计，适配桌面和移动端
+- 自定义设计语言：温暖色调、卡片布局、圆角阴影
+
+---
+
+## 🎓 面试话术指南
+
+当面试官问"你做过什么 AI 项目"时，这样介绍：
+
+> "我做了一个**室内设计风格多模态智能体**。这个项目的核心不是跑 SD 出图，而是我完整搭建了一条从数据到产品的 AI 生产链路。
+>
+> 第一，我用 kohya_ss 对特定风格（比如侘寂风）做了 **LoRA 微调**，收集了 100+ 张高清效果图，自己洗数据、打标、调参、看 loss 曲线。
+>
+> 第二，我搭了一个 **RAG 知识库**，把室内设计规范、灯光标准、材质参数用 bge 嵌入模型向量化后存到 ChromaDB，这样 Agent 生成的时候有专业知识兜底，不是瞎编。
+>
+> 第三，我用 LangChain 做了一个 **Agent 编排**，用户输入中文需求，Agent 先去知识库查规范，再调用大模型生成 Prompt，最后自动发给 ComfyUI 渲染出图，全程自动化。
+>
+> 第四，我用 Gradio 做了一个网页 Demo，可以直接演示给面试官看——输入设计需求，实时出图，中间每一步的推理过程都可见。"
+
 ---
 
 ## ⚙️ 依赖与硬件要求
