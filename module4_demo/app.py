@@ -28,11 +28,11 @@ def process_design_request(user_input: str, enable_image_gen: bool = True):
     Gradio 回调函数：处理用户输入，返回 Agent 的完整输出。
     """
     if not user_input or not user_input.strip():
-        yield "请输入设计需求", "", "", None
+        yield "请输入设计需求", "", "", "", "", "", None
         return
 
     # 先展示思考中状态
-    yield "🤔 正在分析需求...", "", "", None
+    yield "🤔 正在分析需求...", "", "", "", "", "", None
 
     # 运行 Agent
     result = run_agent(user_input, generate=enable_image_gen)
@@ -71,6 +71,21 @@ def process_design_request(user_input: str, enable_image_gen: bool = True):
 
     # 设计分析
     analysis = result.get("analysis", "")
+    coohom_brief = f"""### 🧩 酷家乐 / Coohom 执行 Brief
+```
+{result.get('coohom_brief', '无')}
+```
+"""
+    asset_tags = f"""### 🗂 模型素材库标签
+```
+{result.get('asset_tags', '无')}
+```
+"""
+    social_copy = f"""### 📣 内容发布包
+```
+{result.get('social_copy', '无')}
+```
+"""
 
     # 图像
     image = None
@@ -83,7 +98,7 @@ def process_design_request(user_input: str, enable_image_gen: bool = True):
     elif enable_image_gen:
         process_text += "\n\n### ⚠️ 图像生成\nComfyUI 未运行或生成失败"
 
-    yield process_text, prompt_text, analysis, image
+    yield process_text, prompt_text, analysis, coohom_brief, asset_tags, social_copy, image
 
 
 # ==================== Gradio UI ====================
@@ -426,7 +441,7 @@ footer {
 }
 """
 
-with gr.Blocks(css=CUSTOM_CSS, title="室内设计 AI Agent", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="室内设计 AI Agent") as demo:
     # ===== 顶部横幅 =====
     gr.HTML("""
     <div class="header-section">
@@ -484,6 +499,21 @@ with gr.Blocks(css=CUSTOM_CSS, title="室内设计 AI Agent", theme=gr.themes.So
                             elem_classes="markdown-output",
                             value="<span class='waiting-text'>等待生成...</span>",
                         )
+                    with gr.TabItem("🧩 Coohom Brief"):
+                        coohom_output = gr.Markdown(
+                            elem_classes="markdown-output",
+                            value="<span class='waiting-text'>等待生成...</span>",
+                        )
+                    with gr.TabItem("🗂 素材标签"):
+                        asset_output = gr.Markdown(
+                            elem_classes="markdown-output",
+                            value="<span class='waiting-text'>等待生成...</span>",
+                        )
+                    with gr.TabItem("📣 发布内容"):
+                        social_output = gr.Markdown(
+                            elem_classes="markdown-output",
+                            value="<span class='waiting-text'>等待生成...</span>",
+                        )
 
             image_output = gr.Image(
                 label=None,
@@ -525,7 +555,15 @@ with gr.Blocks(css=CUSTOM_CSS, title="室内设计 AI Agent", theme=gr.themes.So
     submit_btn.click(
         fn=process_design_request,
         inputs=[user_input, enable_image],
-        outputs=[process_output, prompt_output, analysis_output, image_output],
+        outputs=[
+            process_output,
+            prompt_output,
+            analysis_output,
+            coohom_output,
+            asset_output,
+            social_output,
+            image_output,
+        ],
     )
 
 
@@ -535,5 +573,7 @@ if __name__ == "__main__":
         server_name="127.0.0.1",
         server_port=7860,
         share=False,
+        css=CUSTOM_CSS,
+        theme=gr.themes.Soft(),
         allowed_paths=[_cfg["output_dir"]],
     )

@@ -14,7 +14,7 @@
 
 # ==================== Agent 系统提示词 ====================
 
-AGENT_SYSTEM_PROMPT = """你是一位资深的室内设计 AI 渲染专家。你的任务是根据用户的中文需求描述，生成一段高质量的 Stable Diffusion 英文提示词。
+AGENT_SYSTEM_PROMPT = """你是一位资深的室内设计 AI 渲染专家，同时熟悉酷家乐 / Coohom 方案图制作、家居模型素材库运营和海外社媒内容发布。你的任务是根据用户的中文需求描述，生成一套可落地的空间设计交付物。
 
 ## 你的工作流程
 1. 仔细理解用户的需求（风格、空间、面积、特殊要求）
@@ -24,6 +24,9 @@ AGENT_SYSTEM_PROMPT = """你是一位资深的室内设计 AI 渲染专家。你
    - 反向提示词（英文，30-50 词）
    - 推荐参数（CFG Scale, Steps, Sampler）
    - 设计分析（中文，为什么这样生成）
+   - 酷家乐 / Coohom 英文执行 brief（给建模和出图使用）
+   - 模型素材库标签（中英文关键词、分类、材质、风格）
+   - 社媒发布内容（标题、正文、标签、短视频脚本）
 
 ## 提示词撰写原则
 - 主体在前：房间类型、风格、视角（interior design, living room, wide angle）
@@ -45,6 +48,31 @@ CFG: 7.0, Steps: 30, Sampler: euler_ancestral
 
 [ANALYSIS]
 设计分析（中文）...
+
+[COOHOM_BRIEF]
+Room type:
+Target style:
+Area and layout:
+Key furniture:
+Material palette:
+Lighting setup:
+Camera angle:
+Render notes:
+
+[ASSET_TAGS]
+Category:
+Room:
+Style tags:
+Material tags:
+Color tags:
+Coohom keywords:
+Quality notes:
+
+[SOCIAL_COPY]
+Title:
+Caption:
+Hashtags:
+Short video script:
 ```
 """
 
@@ -61,7 +89,7 @@ LoRA 名称: {lora_name}
 触发词: {trigger_words}
 权重: {lora_strength}
 
-请根据以上信息，生成 Stable Diffusion 提示词。记得在正向提示词中包含触发词。"""
+请根据以上信息，生成 Stable Diffusion 提示词，并补充酷家乐 / Coohom 执行 brief、模型素材库标签和社媒发布内容。记得在正向提示词中包含触发词；如果没有可用触发词，则不要编造 LoRA 名称。"""
 
 
 # ==================== 预设风格模板（作为 RAG 的补充） ====================
@@ -91,6 +119,24 @@ STYLE_PRESETS = {
                           "hidden storage, large windows, natural light, microcement walls",
         "negative_boost": "ornate decorations, clutter, excessive furniture, busy patterns, "
                           "dark corners, heavy curtains, frilly textiles, baroque elements",
+        "cfg_scale": 7.0,
+        "steps": 30,
+    },
+    "modern_luxury": {
+        "positive_boost": "modern luxury interior, refined marble, brushed brass details, "
+                          "warm grey palette, leather furniture, glass accents, elegant lighting, "
+                          "high-end residential rendering, balanced composition",
+        "negative_boost": "cheap plastic furniture, cluttered decor, overdone gold, cold office look, "
+                          "messy layout, harsh lighting, low quality texture",
+        "cfg_scale": 7.0,
+        "steps": 30,
+    },
+    "scandinavian": {
+        "positive_boost": "scandinavian natural interior, light oak wood, soft white walls, "
+                          "linen textiles, rattan details, indoor plants, bright natural light, "
+                          "cozy functional layout, calm neutral palette",
+        "negative_boost": "dark heavy furniture, ornate decorations, glossy marble, clutter, "
+                          "cold industrial lighting, saturated colors",
         "cfg_scale": 7.0,
         "steps": 30,
     },

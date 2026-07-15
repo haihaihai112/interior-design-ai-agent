@@ -13,7 +13,12 @@
 
 import re
 import sys
+import io
 from pathlib import Path
+
+# 修复 Windows GBK 环境下 emoji 打印导致的 UnicodeEncodeError
+if hasattr(sys.stdout, 'buffer'):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -43,6 +48,8 @@ def _detect_style(user_input: str) -> str:
         "wabisabi": ["侘寂", "wabisabi", "wabi-sabi", "日式", "禅意"],
         "french_cream": ["法式奶油", "奶油风", "法式", "french cream", "巴黎"],
         "minimalist": ["极简", "无主灯", "简约", "minimalist", "现代简约"],
+        "modern_luxury": ["现代轻奢", "轻奢", "modern luxury", "quiet luxury", "大理石", "黄铜"],
+        "scandinavian": ["北欧", "scandinavian", "nordic", "原木", "自然风"],
     }
     for style, keywords in style_keywords.items():
         for kw in keywords:
@@ -74,12 +81,21 @@ def _query_rag(user_input: str, style: str | None, top_k: int = 5) -> str:
 
     if style:
         # 追加风格相关查询，提高检索召回率
-        if style == "wabisabi":
-            queries.append("侘寂风 材质 灯光 色彩 空间布局")
-        elif style == "french_cream":
-            queries.append("法式奶油风 材质 色彩 石膏线 家具")
-        elif style == "minimalist":
-            queries.append("极简风 无主灯 材质 配色 灯光设计")
+        style_queries = {
+            "wabisabi": "侘寂风 材质 灯光 色彩 空间布局",
+            "french_cream": "法式奶油风 材质 色彩 石膏线 家具",
+            "minimalist": "极简风 无主灯 材质 配色 灯光设计",
+            "modern_luxury": "现代轻奢 大理石 黄铜 皮革 灯光 高级感",
+            "scandinavian": "北欧自然风 原木 亚麻 绿植 自然光",
+        }
+        if style in style_queries:
+            queries.append(style_queries[style])
+
+    queries.extend([
+        "酷家乐 Coohom 英文 brief 方案图 建模 出图 流程",
+        "家居模型素材库 标签 分类 材质 风格 关键词",
+        "海外设计趋势 社媒内容发布 图文 短视频",
+    ])
 
     all_results = []
     seen = set()
@@ -106,25 +122,37 @@ def _parse_llm_response(response: str) -> dict:
         "steps": 30,
         "sampler": "euler_ancestral",
         "analysis": "",
+        "coohom_brief": "",
+        "asset_tags": "",
+        "social_copy": "",
     }
 
+    def extract_section(name: str, following: list[str] | None = None) -> str:
+        following = following or [
+            "POSITIVE", "NEGATIVE", "PARAMS", "ANALYSIS",
+            "COOHOM_BRIEF", "ASSET_TAGS", "SOCIAL_COPY",
+        ]
+        other_sections = "|".join(s for s in following if s != name)
+        match = re.search(
+            rf"\[{name}\]\s*\n(.*?)(?=\[({other_sections})\]|$)",
+            response,
+            re.DOTALL,
+        )
+        return match.group(1).strip() if match else ""
+
     # 提取正向提示词
-    pos_match = re.search(r"\[POSITIVE\]\s*\n(.*?)(?=\[NEGATIVE\]|\[PARAMS\]|\[ANALYSIS\]|$)",
-                          response, re.DOTALL)
-    if pos_match:
-        result["positive"] = pos_match.group(1).strip()
+    positive = extract_section("POSITIVE")
+    if positive:
+        result["positive"] = positive
 
     # 提取反向提示词
-    neg_match = re.search(r"\[NEGATIVE\]\s*\n(.*?)(?=\[PARAMS\]|\[ANALYSIS\]|$)",
-                          response, re.DOTALL)
-    if neg_match:
-        result["negative"] = neg_match.group(1).strip()
+    negative = extract_section("NEGATIVE")
+    if negative:
+        result["negative"] = negative
 
     # 提取参数
-    params_match = re.search(r"\[PARAMS\]\s*\n(.*?)(?=\[ANALYSIS\]|$)",
-                             response, re.DOTALL)
-    if params_match:
-        params_str = params_match.group(1).strip()
+    params_str = extract_section("PARAMS")
+    if params_str:
         cfg = re.search(r"CFG[:\s]*([\d.]+)", params_str, re.IGNORECASE)
         steps = re.search(r"Steps[:\s]*(\d+)", params_str, re.IGNORECASE)
         sampler = re.search(r"Sampler[:\s]*(\w+)", params_str, re.IGNORECASE)
@@ -133,9 +161,10 @@ def _parse_llm_response(response: str) -> dict:
         if sampler: result["sampler"] = sampler.group(1)
 
     # 提取分析
-    analysis_match = re.search(r"\[ANALYSIS\]\s*\n(.*?)$", response, re.DOTALL)
-    if analysis_match:
-        result["analysis"] = analysis_match.group(1).strip()
+    result["analysis"] = extract_section("ANALYSIS")
+    result["coohom_brief"] = extract_section("COOHOM_BRIEF")
+    result["asset_tags"] = extract_section("ASSET_TAGS")
+    result["social_copy"] = extract_section("SOCIAL_COPY")
 
     return result
 
@@ -158,6 +187,9 @@ def run_agent(user_input: str, generate: bool = True) -> dict:
             "negative_prompt": str,
             "params": {cfg, steps, sampler},
             "analysis": str,
+            "coohom_brief": str,
+            "asset_tags": str,
+            "social_copy": str,
             "image": {success, image_path, error} | None,
             "raw_llm_response": str,
         }
@@ -214,6 +246,9 @@ def run_agent(user_input: str, generate: bool = True) -> dict:
             "negative_prompt": "",
             "params": {},
             "analysis": "",
+            "coohom_brief": "",
+            "asset_tags": "",
+            "social_copy": "",
             "image": None,
         }
 
@@ -247,6 +282,9 @@ def run_agent(user_input: str, generate: bool = True) -> dict:
             "sampler": parsed["sampler"],
         },
         "analysis": parsed["analysis"],
+        "coohom_brief": parsed["coohom_brief"],
+        "asset_tags": parsed["asset_tags"],
+        "social_copy": parsed["social_copy"],
         "image": None,
         "raw_llm_response": llm_output,
     }
